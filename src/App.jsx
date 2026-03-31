@@ -85,7 +85,7 @@ function App() {
 
     if (isReload) {
       // Ambil path tanpa hash
-      const baseUrl = window.location.origin + "/portfolio/";
+      const baseUrl = window.location.origin + "/";
       window.location.replace(baseUrl);
     }
   }, []);
