@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import CountUp from "../CountUp/CountUp";
 import "./ProfileCard.css";
 
 const DEFAULT_BEHIND_GRADIENT =
@@ -52,6 +53,8 @@ const ProfileCardComponent = ({
   contactText = "Contact",
   showUserInfo = true,
   onContactClick,
+  stats,
+  onLikeClick,
 }) => {
   const wrapRef = useRef(null);
   const cardRef = useRef(null);
@@ -331,6 +334,21 @@ const ProfileCardComponent = ({
                     {status && <div className="pc-status">{status}</div>}
                   </div>
                 </div>
+
+                {/* --- DISPLAY STATS --- */}
+                {stats && (
+                  <div className="flex gap-4 mb-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400" style={{ pointerEvents: "auto" }}>
+                    <div className="flex items-center gap-1">
+                       <span className="text-violet-400">
+                         <CountUp to={stats.views} from={0} duration={0.5} />
+                       </span> VIEWS
+                    </div>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-red-400 transition-colors" onClick={onLikeClick}>
+                       <span className="text-red-500">♥</span> <CountUp to={stats.likes} from={0} duration={0.5} />
+                    </div>
+                  </div>
+                )}
+
                 <button
                   className="pc-contact-btn"
                   onClick={handleContactClick}

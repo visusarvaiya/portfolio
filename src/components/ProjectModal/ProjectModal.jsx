@@ -42,12 +42,12 @@ const ProjectModal = ({ isOpen, onClose, project }) => {
         onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat diklik di dalam
         className={`relative bg-zinc-900 border border-violet-500/50 rounded-2xl shadow-2xl shadow-violet-500/20 w-full max-w-lg transform transition-transform duration-300 ${isClosing ? 'animate-out' : 'animate-in'}`}
       >
-        {/* --- TOMBOL CLOSE DI ATAS BOX --- */}
+        {/* --- TOMBOL CLOSE DI DALAM BOX --- */}
         <button
             onClick={handleClose}
-            className="absolute -top-12 right-0 text-zinc-300 hover:text-white transition-colors p-2 bg-zinc-800 rounded-full hover:bg-violet-600 border border-zinc-700 z-50 shadow-lg"
+            className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-800/50 hover:bg-zinc-700/80 rounded-full border border-zinc-700/50 z-50 shadow-sm"
         >
-            <FiX size={24} />
+            <FiX size={20} />
         </button>
 
         {/* --- GAMBAR PROYEK --- */}

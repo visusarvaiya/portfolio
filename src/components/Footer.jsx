@@ -23,7 +23,7 @@ const Footer = () => {
         <div className="flex gap-3 order-2 md:order-none">
           <a href="https://github.com/visusarvaiya"><i className="ri-github-fill ri-2x"></i></a>
           <a href="https://www.instagram.com/vishvasarvaiya/"><i className="ri-instagram-fill ri-2x"></i></a>
-          <a href="https://leetcode.com/progress/"><i className="ri-code-box-fill ri-2x"></i></a>
+          <a href="https://leetcode.com/u/vishvaSarvaiya_123/" target="_blank" rel="noopener noreferrer"><i className="ri-code-box-fill ri-2x"></i></a>
         </div>
 
         {/* Dock - paling bawah di mobile */}

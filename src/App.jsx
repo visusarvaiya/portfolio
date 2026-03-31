@@ -10,6 +10,7 @@ import { listTools, listProyek } from "./data";
 import ChromaGrid from "./components/ChromaGrid/ChromaGrid";
 import ProjectModal from "./components/ProjectModal/ProjectModal"; // <-- IMPORT MODAL
 import Aurora from "./components/Aurora/Aurora";
+import CountUp from "./components/CountUp/CountUp";
 import AOS from 'aos';
 import axios from 'axios';
 import 'aos/dist/aos.css'; // You can also use <link> for styles
@@ -25,6 +26,8 @@ function App() {
   // Stats State
   const [stats, setStats] = useState({ views: 0, likes: 0 });
   const [isLiking, setIsLiking] = useState(false);
+  const [formStatus, setFormStatus] = useState(null); // 'loading', 'success', 'error'
+  const [formData, setFormData] = useState({ Name: '', Email: '', message: '' });
 
   // CounterAPI configuration
   const API_KEY = "vishva-portfolio-realtime-stats";
@@ -41,23 +44,29 @@ function App() {
   // Fetch current stats
   const fetchStats = async () => {
     try {
-      const viewsRes = await axios.get(`${BASE_URL}/views`);
-      const likesRes = await axios.get(`${BASE_URL}/likes`);
-      setStats({
-        views: viewsRes.data.count,
-        likes: likesRes.data.count
-      });
+      const [viewsRes, likesRes] = await Promise.allSettled([
+        axios.get(`${BASE_URL}/views`),
+        axios.get(`${BASE_URL}/likes`)
+      ]);
+
+      setStats(prev => ({
+        views: viewsRes.status === 'fulfilled' ? viewsRes.value.data.count : prev.views,
+        likes: likesRes.status === 'fulfilled' ? likesRes.value.data.count : prev.likes
+      }));
     } catch (err) {
-      console.error("Failed to fetch stats", err);
+      console.error("Critical: Failed to fetch stats", err);
     }
   };
 
   // Increment views on mount
   useEffect(() => {
+    // Initial fetch to show current stats immediately
+    fetchStats();
+    
     const incrementViews = async () => {
       try {
-        await axios.get(`${BASE_URL}/views/up`);
-        fetchStats();
+        await axios.get(`${BASE_URL}/views/up?t=${Date.now()}`);
+        await fetchStats(); // Fetch again to show the increment
       } catch (err) {
         console.error("Failed to increment views", err);
       }
@@ -68,11 +77,18 @@ function App() {
   const handleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
+    
+    // Optimistic Update: Update UI immediately
+    setStats(prev => ({ ...prev, likes: prev.likes + 1 }));
+
     try {
-      await axios.get(`${BASE_URL}/likes/up`);
-      fetchStats();
+      await axios.get(`${BASE_URL}/likes/up?t=${Date.now()}`);
+      // Re-fetch to get accurate global count (in case others liked too)
+      await fetchStats();
     } catch (err) {
       console.error("Failed to increment likes", err);
+      // Revert optimistic update on error if needed
+      // setStats(prev => ({ ...prev, likes: prev.likes - 1 }));
     } finally {
       setIsLiking(false);
     }
@@ -163,6 +179,8 @@ function App() {
               enableTilt={true}
               enableMobileTilt={false}
               onContactClick={() => window.location.href = 'mailto:visusarvaiya54@gmail.com'}
+              stats={stats}
+              onLikeClick={handleLike}
             />
           </div>
         </div>
@@ -338,7 +356,9 @@ function App() {
           <div className="gap-8 max-w-4xl mx-auto flex flex-col md:flex-row justify-center w-full">
             <div className="flex-1 p-8 border-l-[4px] border-violet-500 bg-zinc-900/30 flex flex-col items-center text-center transition-all duration-300 hover:bg-zinc-900/50" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="400" data-aos-once="true">
               <i className="ri-line-chart-line text-4xl text-violet-500 mb-4"></i>
-              <h1 className="text-6xl font-black mb-2 text-white">{stats.views.toLocaleString()}</h1>
+              <h1 className="text-6xl font-black mb-2 text-white">
+                 <CountUp to={stats.views} from={0} duration={1.5} separator="," />
+              </h1>
               <p className="text-lg font-bold uppercase tracking-widest text-zinc-300">Total Views</p>
               <p className="text-sm text-zinc-500 mt-2">Active page visits</p>
             </div>
@@ -348,7 +368,9 @@ function App() {
               data-aos="fade-up" data-aos-duration="1000" data-aos-delay="600" data-aos-once="true"
             >
               <i className={`ri-heart-add-line text-4xl mb-4 transition-colors ${isLiking ? 'text-red-500 scale-125' : 'text-violet-500 group-hover:text-red-500'}`}></i>
-              <h1 className="text-6xl font-black mb-2 text-white">{stats.likes.toLocaleString()}</h1>
+              <h1 className="text-6xl font-black mb-2 text-white">
+                <CountUp to={stats.likes} from={0} duration={1.5} separator="," />
+              </h1>
               <p className="text-lg font-bold uppercase tracking-widest text-zinc-300">Appreciation</p>
               <p className="text-sm text-zinc-500 mt-2 hover:text-white transition-colors duration-300">Click heart to appreciate</p>
             </div>
@@ -379,67 +401,108 @@ function App() {
           <div className="flex justify-center w-full">
             {/* Contact Form di tengah */}
             <div className="w-full max-w-2xl">
-              <form
-                action="https://formsubmit.co/visusarvaiya54@gmail.com"
-                method="POST"
-                onSubmit={() => {
-                  handleLike(); // Automatic appreciation on form submit
-                }}
-                className="bg-zinc-800 p-10 w-full rounded-md"
-                autoComplete="off"
-                data-aos="fade-up"
-                data-aos-duration="1000"
-                data-aos-delay="500"
-                data-aos-once="true"
-              >
-                <div className="flex flex-col gap-6">
-                  {/* FormSubmit Configs */}
-                  <input type="hidden" name="_captcha" value="false" />
-                  <input type="hidden" name="_template" value="table" />
-                  <input type="hidden" name="_subject" value="New message from your Portfolio!" />
-
-                  <div className="flex flex-col gap-2">
-                    <label className="font-semibold">Full Name</label>
-                    <input
-                      type="text"
-                      name="Name"
-                      placeholder="Input Name..."
-                      className="border border-zinc-500 p-2 rounded-md"
-                      required
-                    />
+              {formStatus === 'success' ? (
+                <div className="bg-zinc-800/50 border border-violet-500/50 p-10 rounded-2xl text-center space-y-4 animate-in">
+                  <div className="w-20 h-20 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i className="ri-checkbox-circle-fill text-5xl text-violet-500"></i>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-semibold">Email</label>
-                    <input
-                      type="email"
-                      name="Email"
-                      placeholder="Input Email..."
-                      className="border border-zinc-500 p-2 rounded-md"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="message" className="font-semibold">Message</label>
-                    <textarea
-                      name="message"
-                      id="message"
-                      cols="45"
-                      rows="7"
-                      placeholder="Message..."
-                      className="border border-zinc-500 p-2 rounded-md"
-                      required
-                    ></textarea>
-                  </div>
-                  <div className="text-center">
-                    <button
-                      type="submit"
-                      className="font-semibold bg-[#1a1a1a] p-4 px-6 rounded-full w-full cursor-pointer border border-gray-700 hover:bg-[#222] transition-colors"
-                    >
-                      <ShinyText text="Send" disabled={false} speed={3} className="custom-class" />
-                    </button>
-                  </div>
+                  <h2 className="text-3xl font-bold text-white">Message Sent!</h2>
+                  <p className="text-zinc-400 text-lg">
+                    Thank you for reaching out. I'll get back to you as soon as possible.
+                  </p>
+                  <button 
+                    onClick={() => setFormStatus(null)}
+                    className="mt-6 text-violet-400 font-bold hover:underline"
+                  >
+                    Send another message?
+                  </button>
                 </div>
-              </form>
+              ) : (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setFormStatus('loading');
+                    try {
+                      const response = await fetch("https://formsubmit.co/ajax/visusarvaiya54@gmail.com", {
+                        method: "POST",
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          Name: e.target.Name.value,
+                          Email: e.target.Email.value,
+                          message: e.target.message.value,
+                          _subject: "New message from your Portfolio!"
+                        })
+                      });
+                      
+                      if (response.ok) {
+                        setFormStatus('success');
+                        handleLike(); // Appreciation on success
+                      } else {
+                        setFormStatus('error');
+                      }
+                    } catch (err) {
+                      console.error("Form submisson failed", err);
+                      setFormStatus('error');
+                    }
+                  }}
+                  className="bg-zinc-800 p-10 w-full rounded-md border border-zinc-700 active-glow transition-all duration-300"
+                  autoComplete="off"
+                  data-aos="fade-up"
+                  data-aos-duration="1000"
+                  data-aos-delay="500"
+                  data-aos-once="true"
+                >
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="font-semibold">Full Name</label>
+                      <input
+                        type="text"
+                        name="Name"
+                        placeholder="Input Name..."
+                        className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl focus:border-violet-500 outline-none transition-colors"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="font-semibold">Email</label>
+                      <input
+                        type="email"
+                        name="Email"
+                        placeholder="Input Email..."
+                        className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl focus:border-violet-500 outline-none transition-colors"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="message" className="font-semibold">Message</label>
+                      <textarea
+                        name="message"
+                        id="message"
+                        cols="45"
+                        rows="5"
+                        placeholder="Message..."
+                        className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl focus:border-violet-500 outline-none transition-colors resize-none"
+                        required
+                      ></textarea>
+                    </div>
+                    <div className="text-center">
+                      <button
+                        type="submit"
+                        disabled={formStatus === 'loading'}
+                        className="font-semibold bg-violet-600 p-4 px-6 rounded-xl w-full cursor-pointer hover:bg-violet-700 transition-all duration-300 shadow-lg shadow-violet-500/20 disabled:opacity-50"
+                      >
+                        {formStatus === 'loading' ? 'Sending...' : <ShinyText text="Send Message" disabled={false} speed={3} />}
+                      </button>
+                      {formStatus === 'error' && (
+                        <p className="mt-4 text-red-500 text-sm">Oops! Something went wrong. Please try again.</p>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </div>
